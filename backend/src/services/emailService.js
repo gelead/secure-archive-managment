@@ -11,6 +11,30 @@ const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'noreply@securearchive.c
 // Create transporter
 let transporter = null;
 
+// Rate limiting: prevent duplicate emails within 5 seconds
+const recentEmails = new Map(); // email -> timestamp
+const EMAIL_RATE_LIMIT_MS = 5000; // 5 seconds
+
+const checkRateLimit = (to, subject) => {
+  const key = `${to}:${subject}`;
+  const lastSent = recentEmails.get(key);
+  const now = Date.now();
+  
+  if (lastSent && (now - lastSent) < EMAIL_RATE_LIMIT_MS) {
+    const timeSinceLastSent = Math.floor((now - lastSent) / 1000);
+    throw new Error(`Email rate limit: Please wait ${5 - timeSinceLastSent} seconds before sending another email to ${to}`);
+  }
+  
+  recentEmails.set(key, now);
+  
+  // Clean up old entries (older than 1 minute)
+  for (const [k, timestamp] of recentEmails.entries()) {
+    if (now - timestamp > 60000) {
+      recentEmails.delete(k);
+    }
+  }
+};
+
 const getTransporter = async () => {
   // Require SMTP credentials
   if (!SMTP_USER || !SMTP_PASS) {
@@ -161,6 +185,9 @@ export class EmailService {
    */
   static async sendEmail(to, subject, text, html = null) {
     try {
+      // Check rate limit to prevent duplicate sends
+      checkRateLimit(to, subject);
+      
       // Check if SMTP is configured
       if (!SMTP_USER || !SMTP_PASS) {
         const errorMsg = 'SMTP not configured. Please configure SMTP settings in .env file (SMTP_HOST, SMTP_USER, SMTP_PASS)';
