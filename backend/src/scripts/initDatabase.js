@@ -17,10 +17,12 @@ export const initDatabase = async () => {
     // Create default admin user if not exists
     const adminExists = await db.collection('users').findOne({ username: 'admin' });
     if (!adminExists) {
+      // Use SMTP_USER email if configured, otherwise use demo email
+      const adminEmail = process.env.SMTP_USER || 'admin@company.com';
       const adminUser = {
         _id: 'admin',
         username: 'admin',
-        email: 'admin@company.com',
+        email: adminEmail,
         phone: '+1234567890',
         emailVerified: true,
         phoneVerified: true,
@@ -46,6 +48,20 @@ export const initDatabase = async () => {
       
       await db.collection('users').insertOne(adminUser);
       console.log('[Init] Default admin user created (username: admin, password: Admin@123!)');
+      console.log(`[Init] Admin email set to: ${adminEmail}`);
+      if (!process.env.SMTP_USER) {
+        console.log('[Init] ⚠️  WARNING: SMTP_USER not configured. Admin email is demo address.');
+        console.log('[Init] ⚠️  Update admin email in database or set SMTP_USER in .env before first login.');
+      }
+    } else {
+      // Update existing admin email if SMTP_USER is configured and different
+      if (process.env.SMTP_USER && adminExists.email !== process.env.SMTP_USER) {
+        await db.collection('users').updateOne(
+          { username: 'admin' },
+          { $set: { email: process.env.SMTP_USER } }
+        );
+        console.log(`[Init] Updated admin email to: ${process.env.SMTP_USER}`);
+      }
     }
     
     // Initialize access model setting

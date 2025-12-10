@@ -417,6 +417,13 @@ Edit `backend/src/config/security.js` to customize:
 ### Default Admin Account
 - **Username**: `admin`
 - **Password**: `Admin@123!` (change after first login)
+- **Email**: Uses `SMTP_USER` from `.env` if configured, otherwise `admin@company.com`
+
+**Important**: If you've already created the admin account with a demo email, update it to your real email:
+```bash
+npm run fix-admin-email
+```
+This will update the admin email to match your `SMTP_USER` from `.env` so you can receive MFA codes. If another user already has that email, it will handle the conflict automatically.
 
 ### Access Control Models
 
