@@ -247,6 +247,7 @@ secure-archive-management-system/
 
 #### Scripts
 - **`backend/src/scripts/initDatabase.js`**: Database initialization script for setting up collections and indexes
+- **`backend/src/scripts/seedDemoFiles.js`**: Script to seed demo files for testing and demonstration
 - **`backend/backup.js`**: Manual backup script for creating data snapshots
 - **`backend/server.js`**: Entry point that imports and starts the main server
 
@@ -292,6 +293,7 @@ secure-archive-management-system/
 ### Database Files
 - **`database/migrations/001_initial_schema.js`**: Initial database schema migration
 - **`database/seeds/defaultUsers.js`**: Default user seed data
+- **`database/seeds/demoFiles.js`**: Demo files seed data (15 files with various security labels and permissions)
 
 ### Docker Files
 - **`docker/docker-compose.yml`**: Docker Compose configuration for full stack deployment
@@ -368,7 +370,13 @@ secure-archive-management-system/
    npm run init-db
    ```
 
-5. **Start the backend server**
+5. **Seed demo files (optional)**
+   ```bash
+   npm run seed-files
+   ```
+   This will add 15 demo files with different security labels, owners, and departments to demonstrate all access control models.
+
+6. **Start the backend server**
    ```bash
    npm run start-server
    ```
@@ -423,6 +431,12 @@ The system supports five access control models that can be switched via the Admi
 ### Key Features Usage
 
 - **MFA**: All users must verify via email OTP on login
+- **Demo Files**: After running `npm run seed-files`, you'll have 15 demo files:
+  - 2 Public files (accessible to all with clearance level 1+)
+  - 10 Internal files (requires clearance level 2+)
+  - 3 Confidential files (requires clearance level 3)
+  - Files with different owners for DAC demonstration
+  - Files in different departments (Finance, IT, HR) for RBAC/ABAC
 - **File Sharing**: Use the Files page to share files with DAC permissions
 - **Role Requests**: Request role changes via Role Requests page (requires admin approval)
 - **Leave Requests**: Submit leave requests (demonstrates RuBAC time-based rules)

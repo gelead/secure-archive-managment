@@ -11,7 +11,8 @@
     "start-server": "node backend/src/server.js",
     "stop-server": "lsof -ti :4000 | xargs kill -9 2>/dev/null || echo 'No server running on port 4000'",
     "restart-server": "npm run stop-server && sleep 1 && npm run start-server",
-    "init-db": "node backend/src/scripts/initDatabase.js"
+    "init-db": "node backend/src/scripts/initDatabase.js",
+    "seed-files": "node backend/src/scripts/seedDemoFiles.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

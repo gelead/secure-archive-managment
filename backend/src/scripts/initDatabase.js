@@ -55,6 +55,66 @@ export const initDatabase = async () => {
       console.log('[Init] Default access model set to RBAC');
     }
     
+    // Seed demo files if collection is empty
+    const fileCount = await db.collection('files').countDocuments();
+    if (fileCount === 0) {
+      const { demoFiles } = await import('../../../database/seeds/demoFiles.js');
+      
+      // Ensure demo file owners exist
+      const adminUser = await db.collection('users').findOne({ username: 'admin' });
+      const managerUser = await db.collection('users').findOne({ username: 'alice_manager' });
+      const staffUser = await db.collection('users').findOne({ username: 'bob_staff' });
+      
+      // Only insert files if at least admin exists
+      if (adminUser) {
+        // Update file ownerIds to match existing users
+        const filesToInsert = demoFiles.map(file => {
+          // Map owner usernames to actual user IDs
+          if (file.ownerUsername === 'admin' && adminUser) {
+            file.ownerId = adminUser._id;
+          } else if (file.ownerUsername === 'alice_manager' && managerUser) {
+            file.ownerId = managerUser._id;
+          } else if (file.ownerUsername === 'bob_staff' && staffUser) {
+            file.ownerId = staffUser._id;
+          }
+          
+          // Update sharedWith user IDs
+          if (file.sharedWith && file.sharedWith.length > 0) {
+            file.sharedWith = file.sharedWith.map(username => {
+              if (username === 'admin' && adminUser) return adminUser._id;
+              if (username === 'alice_manager' && managerUser) return managerUser._id;
+              if (username === 'bob_staff' && staffUser) return staffUser._id;
+              return username;
+            });
+          }
+          
+          // Update permissions user IDs
+          if (file.permissions) {
+            const updatedPermissions = {};
+            for (const [userId, permData] of Object.entries(file.permissions)) {
+              let actualUserId = userId;
+              if (userId === 'admin' && adminUser) actualUserId = adminUser._id;
+              if (userId === 'alice_manager' && managerUser) actualUserId = managerUser._id;
+              if (userId === 'bob_staff' && staffUser) actualUserId = staffUser._id;
+              
+              // Update grantedBy in permissions
+              if (permData.grantedBy === 'admin' && adminUser) permData.grantedBy = adminUser._id;
+              if (permData.grantedBy === 'alice_manager' && managerUser) permData.grantedBy = managerUser._id;
+              if (permData.grantedBy === 'bob_staff' && staffUser) permData.grantedBy = staffUser._id;
+              
+              updatedPermissions[actualUserId] = permData;
+            }
+            file.permissions = updatedPermissions;
+          }
+          
+          return file;
+        });
+        
+        await db.collection('files').insertMany(filesToInsert);
+        console.log(`[Init] ${filesToInsert.length} demo files created`);
+      }
+    }
+    
     await createLogEntry('SYSTEM', 'SYSTEM', 'DB_INIT', 'Database initialized with default data');
     console.log('[Init] Database initialization completed');
     
