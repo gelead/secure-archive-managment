@@ -1,0 +1,37 @@
+{
+  "name": "secure-archive-management-system",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "backup": "node backend/backup.js",
+    "start-server": "node backend/src/server.js",
+    "stop-server": "lsof -ti :4000 | xargs kill -9 2>/dev/null || echo 'No server running on port 4000'",
+    "restart-server": "npm run stop-server && sleep 1 && npm run start-server",
+    "init-db": "node backend/src/scripts/initDatabase.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "lucide-react": "^0.555.0",
+    "mongodb": "^4.17.2",
+    "nodemailer": "^6.10.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^6.20.0",
+    "recharts": "^3.5.1",
+    "speakeasy": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
