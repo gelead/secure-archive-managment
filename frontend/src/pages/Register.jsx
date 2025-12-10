@@ -27,6 +27,11 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;

@@ -21,6 +21,11 @@ const Login = () => {
     e.preventDefault();
     setError('');
     
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+    
     if (!captchaToken) {
       setError('Please complete the security verification (CAPTCHA quiz).');
       return;
@@ -49,6 +54,12 @@ const Login = () => {
   const handleMFA = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+    
     setLoading(true);
     
     try {
