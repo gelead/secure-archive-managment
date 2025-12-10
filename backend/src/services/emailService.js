@@ -22,7 +22,10 @@ const checkRateLimit = (to, subject) => {
   
   if (lastSent && (now - lastSent) < EMAIL_RATE_LIMIT_MS) {
     const timeSinceLastSent = Math.floor((now - lastSent) / 1000);
-    throw new Error(`Email rate limit: Please wait ${5 - timeSinceLastSent} seconds before sending another email to ${to}`);
+    const remainingSeconds = 5 - timeSinceLastSent;
+    console.log(`[EmailService] ⚠️  Rate limit: Duplicate email request detected for ${to}. Last sent ${timeSinceLastSent}s ago. Ignoring duplicate.`);
+    // Return success silently to prevent errors from duplicate calls (e.g., React StrictMode)
+    return { success: true, messageId: 'duplicate-prevented', duplicate: true };
   }
   
   recentEmails.set(key, now);
@@ -33,6 +36,8 @@ const checkRateLimit = (to, subject) => {
       recentEmails.delete(k);
     }
   }
+  
+  return null; // No rate limit hit
 };
 
 const getTransporter = async () => {
@@ -186,7 +191,11 @@ export class EmailService {
   static async sendEmail(to, subject, text, html = null) {
     try {
       // Check rate limit to prevent duplicate sends
-      checkRateLimit(to, subject);
+      const rateLimitResult = checkRateLimit(to, subject);
+      if (rateLimitResult) {
+        // Duplicate detected, return success to prevent errors
+        return rateLimitResult;
+      }
       
       // Check if SMTP is configured
       if (!SMTP_USER || !SMTP_PASS) {
