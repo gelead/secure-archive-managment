@@ -176,28 +176,6 @@ export const api = {
       }),
   },
 
-  leave: {
-    createRequest: async (accessToken, startDate, endDate, reason) =>
-      fetchJson(`${API_BASE}/leave/requests`, {
-        method: 'POST',
-        headers: getAuthHeaders(accessToken),
-        body: JSON.stringify({ startDate, endDate, reason }),
-      }),
-    getRequests: async (accessToken) =>
-      fetchJson(`${API_BASE}/leave/requests`, { headers: getAuthHeaders(accessToken) }),
-    approveRequest: async (accessToken, requestId, location, device) =>
-      fetchJson(`${API_BASE}/leave/requests/${requestId}/approve?location=${location || 'office'}&device=${device || 'company-laptop'}`, {
-        method: 'POST',
-        headers: getAuthHeaders(accessToken),
-      }),
-    rejectRequest: async (accessToken, requestId, reason) =>
-      fetchJson(`${API_BASE}/leave/requests/${requestId}/reject`, {
-        method: 'POST',
-        headers: getAuthHeaders(accessToken),
-        body: JSON.stringify({ reason }),
-      }),
-  },
-
   security: {
     getClearanceLevels: async (accessToken) =>
       fetchJson(`${API_BASE}/security/clearance-levels`, { headers: getAuthHeaders(accessToken) }),

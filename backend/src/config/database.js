@@ -1,29 +1,79 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import { MongoClient } from 'mongodb';
 
-const MONGO_URI = process.env.MONGO_URI || '';
-const MONGO_DB = process.env.MONGO_DB || 'secure_archive';
+// Load .env file from backend directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: resolve(__dirname, '../../.env') });
+
+// Default to local MongoDB with database name in URI
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/secure_archive';
+// Extract database name from URI if provided, otherwise use separate env var or default
+const extractDbName = (uri) => {
+  // Match database name after the last slash, before query params
+  // e.g., mongodb://127.0.0.1:27017/secure_archive -> secure_archive
+  const parts = uri.split('/');
+  if (parts.length > 3) {
+    const dbPart = parts[parts.length - 1].split('?')[0]; // Remove query params
+    return dbPart || null;
+  }
+  return null;
+};
+const MONGO_DB = process.env.MONGO_DB || extractDbName(MONGO_URI) || 'secure_archive';
 
 let client = null;
 let db = null;
 
 export const connectToDb = async (retries = 3) => {
-  if (!MONGO_URI) return null;
-  if (client && db) return { client, db };
+  console.log(`[Database] Attempting to connect... URI: ${MONGO_URI}, DB: ${MONGO_DB}`);
+  
+  if (!MONGO_URI) {
+    console.error('[Database] MONGO_URI is not set!');
+    return null;
+  }
+  
+  if (client && db) {
+    console.log('[Database] Using existing connection');
+    return { client, db };
+  }
 
   for (let i = 0; i < retries; i++) {
     try {
-      client = new MongoClient(MONGO_URI, {
+      // Clean URI: Remove database name and query params for MongoClient connection
+      // MongoClient doesn't use database name from URI, we specify it separately
+      const uriParts = MONGO_URI.split('/');
+      const baseUri = uriParts.slice(0, 3).join('/'); // Keep mongodb://host:port
+      const queryString = uriParts[uriParts.length - 1].split('?')[1] || '';
+      const cleanUri = queryString ? `${baseUri}?${queryString}` : baseUri;
+      
+      console.log(`[Database] Connecting to: ${cleanUri}, database: ${MONGO_DB}`);
+      
+      client = new MongoClient(cleanUri, {
         serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 10000,
       });
       await client.connect();
       db = client.db(MONGO_DB);
-      console.log('[Database] Connected to MongoDB');
+      
+      // Verify connection by checking collections
+      const collections = await db.listCollections().toArray();
+      const usersCount = await db.collection('users').countDocuments().catch(() => 0);
+      const logsCount = await db.collection('logs').countDocuments().catch(() => 0);
+      
+      console.log(`[Database] ✓ Connected to MongoDB: ${baseUri}`);
+      console.log(`[Database] ✓ Using database: ${MONGO_DB}`);
+      console.log(`[Database] ✓ Found ${collections.length} collections`);
+      console.log(`[Database] ✓ Users: ${usersCount}, Logs: ${logsCount}`);
+      
       return { client, db };
     } catch (err) {
-      console.warn(`[Database] Attempt ${i + 1} failed:`, err.message);
-      await new Promise((r) => setTimeout(r, 2000)); // wait 2s before retry
+      console.error(`[Database] Attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log('[Database] Retrying in 2 seconds...');
+        await new Promise((r) => setTimeout(r, 2000)); // wait 2s before retry
+      }
     }
   }
   throw new Error('[Database] All connection attempts failed');
@@ -86,11 +136,6 @@ export const createIndexes = async () => {
     await db.collection('roleRequests').createIndex({ userId: 1 });
     await db.collection('roleRequests').createIndex({ status: 1 });
     await db.collection('roleRequests').createIndex({ createdAt: -1 });
-    
-    // Leave requests indexes
-    await db.collection('leaveRequests').createIndex({ userId: 1 });
-    await db.collection('leaveRequests').createIndex({ status: 1 });
-    await db.collection('leaveRequests').createIndex({ createdAt: -1 });
     
     console.log('[Database] Indexes created successfully');
   } catch (error) {

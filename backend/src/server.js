@@ -1,6 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+// Load .env file from backend directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: resolve(__dirname, '../../.env') });
 import { connectToDb, createIndexes } from './config/database.js';
 import { createLogEntry } from './config/logger.js';
 import { backupService } from './services/backup.js';
@@ -74,7 +81,6 @@ app.use(express.json());
 
 // API Routes
 import roleRoutes from './routes/roles.js';
-import leaveRoutes from './routes/leave.js';
 import securityRoutes from './routes/security.js';
 
 app.use('/api/auth', authRoutes);
@@ -83,7 +89,6 @@ app.use('/api/files', fileRoutes);
 app.use('/api', auditRoutes);
 app.use('/api/admin', policyRoutes);
 app.use('/api/role-requests', roleRoutes);
-app.use('/api/leave', leaveRoutes);
 app.use('/api/security', securityRoutes);
 
 // Health check

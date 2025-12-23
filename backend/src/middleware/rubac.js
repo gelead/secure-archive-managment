@@ -62,20 +62,7 @@ export const checkRuBAC = (user, resource) => {
     }
   }
 
-  // Rule 4: Conditional business rules based on resource attributes
-  // Example: Only HR Managers can approve leave requests exceeding 10 days
-  if (action === 'APPROVE_LEAVE' && resource.leaveDays && resource.leaveDays > 10) {
-    // Check if user is HR Manager (HR role with manager privileges or department head)
-    const isHRManager = (user.role === Role.HR && user.department === 'HR') || 
-                        (user.role === Role.MANAGER && user.department === 'HR');
-    if (isHRManager || user.role === Role.ADMIN) {
-      rules.push({ passed: true, reason: 'RuBAC: HR Manager can approve leave > 10 days' });
-    } else {
-      rules.push({ passed: false, reason: 'RuBAC: Only HR Managers can approve leave requests exceeding 10 days' });
-    }
-  }
-
-  // Rule 5: Resource-specific access rules (if resource has rules defined)
+  // Rule 4: Resource-specific access rules (if resource has rules defined)
   if (resource.rubacRules && Array.isArray(resource.rubacRules)) {
     for (const rule of resource.rubacRules) {
       const ruleResult = evaluateRule(rule, user, resource);
