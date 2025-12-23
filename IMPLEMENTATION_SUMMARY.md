@@ -33,7 +33,7 @@ This document summarizes all the features and components implemented according t
 - ✅ Device-based restrictions
 - ✅ Conditional business rules (HR Managers approve leave > 10 days)
 - ✅ Leave request system demonstrating RuBAC
-- ✅ Frontend: Leave Requests page
+
 
 #### ABAC (Attribute-Based Access Control)
 - ✅ Fine-grained attribute evaluation (role, department, location, time)

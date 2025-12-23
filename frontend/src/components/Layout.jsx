@@ -20,7 +20,6 @@ const Layout = ({ user, onLogout, children }) => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ADMIN', 'MANAGER', 'STAFF', 'HR', 'IT'] },
     { path: '/files', icon: FileText, label: 'Files', roles: ['ADMIN', 'MANAGER', 'STAFF', 'HR', 'IT'] },
     { path: '/role-requests', icon: Users, label: 'Role Requests', roles: ['ADMIN', 'MANAGER', 'STAFF', 'HR', 'IT'] },
-    { path: '/leave-requests', icon: Activity, label: 'Leave Requests', roles: ['ADMIN', 'MANAGER', 'STAFF', 'HR', 'IT'] },
     { path: '/users', icon: Users, label: 'Users', roles: ['ADMIN'] },
     { path: '/security', icon: Shield, label: 'Security', roles: ['ADMIN'] },
     { path: '/admin', icon: Settings, label: 'Admin', roles: ['ADMIN'] },

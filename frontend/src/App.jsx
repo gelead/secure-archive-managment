@@ -12,7 +12,6 @@ import AuditLogs from './pages/AuditLogs';
 import Alerts from './pages/Alerts';
 import Backups from './pages/Backups';
 import RoleRequests from './pages/RoleRequests';
-import LeaveRequests from './pages/LeaveRequests';
 import SecurityManagement from './pages/SecurityManagement';
 import Layout from './components/Layout';
 
@@ -55,7 +54,6 @@ const AppRoutes = () => {
                   <Route path="/dashboard" element={<Dashboard user={user} />} />
                   <Route path="/files" element={<Files user={user} />} />
                   <Route path="/role-requests" element={<RoleRequests user={user} />} />
-                  <Route path="/leave-requests" element={<LeaveRequests user={user} />} />
                   <Route path="/users" element={<ProtectedRoute adminOnly><Users user={user} /></ProtectedRoute>} />
                   <Route path="/security" element={<ProtectedRoute adminOnly><SecurityManagement user={user} /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute adminOnly><Admin user={user} /></ProtectedRoute>} />

@@ -67,15 +67,23 @@ router.post('/requests/:id/approve', authMiddleware, async (req, res) => {
     if (!leaveReq) throw new Error('Leave request not found');
 
     // RuBAC check: Only HR Managers can approve leave > 10 days
-    const context = {
+    // Pass leave request as resource with context embedded (consistent with MAC/DAC/RBAC pattern)
+    const resource = {
+      ...leaveReq,
       action: 'APPROVE_LEAVE',
       leaveDays: leaveReq.days,
       location: req.query.location || 'office',
       device: req.query.device || 'company-laptop',
+      context: {
+        action: 'APPROVE_LEAVE',
+        leaveDays: leaveReq.days,
+        location: req.query.location || 'office',
+        device: req.query.device || 'company-laptop',
+      }
     };
 
     const user = await db.collection('users').findOne({ _id: req.user._id });
-    const accessCheck = checkRuBAC(user, {}, 'APPROVE_LEAVE', context);
+    const accessCheck = checkRuBAC(user, resource);
 
     if (!accessCheck.allowed) {
       await createLogEntry(req.user._id, req.user.username, 'LEAVE_APPROVE_DENIED', `Attempted to approve leave request ${req.params.id}`, 'DENIED');
