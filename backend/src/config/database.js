@@ -34,9 +34,17 @@ export const connectToDb = async (retries = 3) => {
     return null;
   }
   
+  // Check if existing connection is still alive
   if (client && db) {
-    console.log('[Database] Using existing connection');
-    return { client, db };
+    try {
+      await client.db('admin').command({ ping: 1 });
+      console.log('[Database] Using existing connection');
+      return { client, db };
+    } catch (err) {
+      console.log('[Database] Existing connection lost, reconnecting...');
+      client = null;
+      db = null;
+    }
   }
 
   for (let i = 0; i < retries; i++) {
@@ -48,13 +56,30 @@ export const connectToDb = async (retries = 3) => {
       const queryString = uriParts[uriParts.length - 1].split('?')[1] || '';
       const cleanUri = queryString ? `${baseUri}?${queryString}` : baseUri;
       
-      console.log(`[Database] Connecting to: ${cleanUri}, database: ${MONGO_DB}`);
+      
       
       client = new MongoClient(cleanUri, {
         serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 10000,
+        maxPoolSize: 10,
+        minPoolSize: 1,
       });
+      
       await client.connect();
+      
+      // Set up connection event listeners
+      client.on('error', (err) => {
+        console.error('[Database] Connection error:', err.message);
+        client = null;
+        db = null;
+      });
+      
+      client.on('close', () => {
+        console.warn('[Database] Connection closed');
+        client = null;
+        db = null;
+      });
+      
       db = client.db(MONGO_DB);
       
       // Verify connection by checking collections
@@ -62,14 +87,21 @@ export const connectToDb = async (retries = 3) => {
       const usersCount = await db.collection('users').countDocuments().catch(() => 0);
       const logsCount = await db.collection('logs').countDocuments().catch(() => 0);
       
-      console.log(`[Database] ✓ Connected to MongoDB: ${baseUri}`);
-      console.log(`[Database] ✓ Using database: ${MONGO_DB}`);
-      console.log(`[Database] ✓ Found ${collections.length} collections`);
-      console.log(`[Database] ✓ Users: ${usersCount}, Logs: ${logsCount}`);
+      console.log(`Database Connected to MongoDB: ${baseUri}`);    
       
       return { client, db };
     } catch (err) {
       console.error(`[Database] Attempt ${i + 1}/${retries} failed:`, err.message);
+      console.error(`[Database] Error details:`, err);
+      if (client) {
+        try {
+          await client.close();
+        } catch (closeErr) {
+          // Ignore close errors
+        }
+        client = null;
+        db = null;
+      }
       if (i < retries - 1) {
         console.log('[Database] Retrying in 2 seconds...');
         await new Promise((r) => setTimeout(r, 2000)); // wait 2s before retry
@@ -81,8 +113,26 @@ export const connectToDb = async (retries = 3) => {
 
 
 export const getDb = () => {
-  if (!db) throw new Error('Database not connected. Call connectToDb() first.');
+  if (!db) {
+    throw new Error('Database not connected. Call connectToDb() first.');
+  }
   return db;
+};
+
+// Health check function for connection monitoring
+export const checkConnection = async () => {
+  if (!client || !db) {
+    return false;
+  }
+  try {
+    await client.db('admin').command({ ping: 1 });
+    return true;
+  } catch (err) {
+    console.warn('[Database] Connection health check failed:', err.message);
+    client = null;
+    db = null;
+    return false;
+  }
 };
 
 export const getCollection = (name) => {
@@ -137,7 +187,6 @@ export const createIndexes = async () => {
     await db.collection('roleRequests').createIndex({ status: 1 });
     await db.collection('roleRequests').createIndex({ createdAt: -1 });
     
-    console.log('[Database] Indexes created successfully');
   } catch (error) {
     console.error('[Database] Failed to create indexes:', error);
   }

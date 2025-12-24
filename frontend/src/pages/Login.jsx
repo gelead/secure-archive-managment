@@ -35,13 +35,17 @@ const Login = () => {
     try {
       const result = await api.auth.login(username, password);
       
-      // MFA is now mandatory - always required
+      // Check if MFA is required (when DISABLE_MFA=false)
       if (result.mfaRequired) {
         setTempUser({ username, ...result });
         setStep('MFA');
         setError(''); // Clear any previous errors
+      } else if (result.user && result.accessToken) {
+        // MFA is disabled (DISABLE_MFA=true) - login directly
+        login(result);
+        navigate('/dashboard');
       } else {
-        // This should not happen - MFA is mandatory
+        // Unexpected response format
         setError('Authentication error. Please try again.');
       }
     } catch (err) {

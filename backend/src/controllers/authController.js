@@ -53,12 +53,51 @@ export class AuthController {
 
     await db.collection('users').updateOne({ _id: user._id }, { $set: { failedAttempts: 0, lockedUntil: null } });
 
-    // MFA is now MANDATORY for all users via email
+    // If MFA is disabled (e.g., offline/dev), skip OTP and log in directly
+    if (process.env.DISABLE_MFA === 'true') {
+      const accessToken = generateAccessToken({ userId: user._id, role: user.role });
+      const refreshToken = generateRefreshToken();
+      const sessionId = crypto.randomBytes(32).toString('hex');
+      const session = {
+        sessionId,
+        userId: user._id,
+        username: user.username,
+        ip,
+        userAgent,
+        location: null,
+        device: null,
+        createdAt: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + securityConfig.session.maxAge),
+      };
+
+      await db.collection('users').updateOne(
+        { _id: user._id },
+        { $set: { refreshToken, pendingOtp: null } }
+      );
+      await db.collection('sessions').insertOne(session);
+      await createLogEntry(user._id, user.username, 'LOGIN_SUCCESS', 'MFA bypassed (DISABLE_MFA=true)', 'SUCCESS', ip);
+
+      const safeUser = { 
+        _id: user._id, 
+        username: user.username, 
+        role: user.role, 
+        department: user.department, 
+        clearanceLevel: user.clearanceLevel, 
+        mfaEnabled: false,
+        email: user.email,
+        phone: user.phone,
+        profile: user.profile || {},
+      };
+      return { user: safeUser, accessToken, refreshToken, sessionId };
+    }
+
+    // MFA is mandatory (normal path)
     if (!user.email) {
       throw new Error('Email is required for authentication. Please contact administrator.');
     }
 
-    // Generate OTP code and send via email (MANDATORY MFA)
+    // Generate OTP code and send via email
     const mfaCode = MFAService.generateSMSOTP();
     const pendingOtp = { 
       code: mfaCode, 
@@ -66,7 +105,6 @@ export class AuthController {
       expiresAt: Date.now() + securityConfig.mfa.codeExpiry 
     };
     
-    // Send MFA code to user's email
     try {
       await MFAService.sendMFACodeToEmail(user.email, user.username, mfaCode);
       console.log(`[Login] ✅ MFA code sent to ${user.email} for user ${user.username}`);
@@ -188,13 +226,19 @@ export class AuthController {
     const emailVerificationCode = MFAService.generateSMSOTP();
     const phoneVerificationCode = phone ? MFAService.generateSMSOTP() : null;
     
-    // Send verification code to email
-    try {
-      await MFAService.sendEmailCode(email, username, emailVerificationCode, 'Email Verification');
-      console.log(`[Register] ✅ Verification email sent to ${email} for user ${username}`);
-    } catch (emailError) {
-      console.error('[Register] Failed to send verification email:', emailError.message);
-      throw new Error(`Failed to send verification email: ${emailError.message || 'Please check SMTP configuration'}`);
+    // If MFA is disabled (offline/dev), skip email sending and auto-verify
+    const disableMFA = process.env.DISABLE_MFA === 'true';
+    if (!disableMFA) {
+      // Send verification code to email
+      try {
+        await MFAService.sendEmailCode(email, username, emailVerificationCode, 'Email Verification');
+        console.log(`[Register] ✅ Verification email sent to ${email} for user ${username}`);
+      } catch (emailError) {
+        console.error('[Register] Failed to send verification email:', emailError.message);
+        throw new Error(`Failed to send verification email: ${emailError.message || 'Please check SMTP configuration'}`);
+      }
+    } else {
+      console.log(`[Register] ⚠️  MFA disabled - skipping email verification for ${username}`);
     }
     
     const newUser = {
@@ -202,14 +246,14 @@ export class AuthController {
       username,
       email: email,
       phone: phone || null,
-      emailVerified: false, // Email verification required
+      emailVerified: disableMFA ? true : false, // Auto-verify if MFA disabled
       phoneVerified: !phone,
       emailVerificationCode: emailVerificationCode,
       phoneVerificationCode: phoneVerificationCode,
       role,
       department,
       clearanceLevel: 1,
-      mfaEnabled: true, // MFA is now mandatory for all users
+      mfaEnabled: !disableMFA, // MFA disabled if DISABLE_MFA=true
       passwordHash,
       failedAttempts: 0,
       lockedUntil: null,
