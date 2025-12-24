@@ -13,12 +13,20 @@ export const checkRBAC = (user, resource) => {
     };
   }
 
+  // Top Secret resources are restricted to admins only
+  if (resource.classification === SecurityLevel.TOP_SECRET) {
+    return { 
+      allowed: false, 
+      reason: 'RBAC: Top Secret resources restricted to Admins.' 
+    };
+  }
+
   // Managers see everything except Confidential IT files (unless they are IT)
   if (user.role === Role.MANAGER) {
-    if (resource.department === 'IT' && resource.classification === SecurityLevel.CONFIDENTIAL) {
+    if (resource.department === 'IT' && resource.classification >= SecurityLevel.CONFIDENTIAL) {
       return { 
         allowed: false, 
-        reason: 'RBAC: Manager cannot access Confidential IT resources.' 
+      reason: 'RBAC: Manager cannot access high sensitivity IT resources.' 
       };
     }
     return { 
@@ -43,6 +51,13 @@ export const checkRBAC = (user, resource) => {
 
   // HR Role specific
   if (user.role === Role.HR) {
+    if (resource.classification >= SecurityLevel.CONFIDENTIAL && resource.department !== 'HR') {
+      return { 
+        allowed: false, 
+        reason: 'RBAC: HR role restricted from non-HR highly sensitive resources.' 
+      };
+    }
+
     if (resource.department === 'HR') {
       return { 
         allowed: true, 

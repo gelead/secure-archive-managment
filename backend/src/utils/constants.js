@@ -10,6 +10,7 @@ export const SecurityLevel = {
   PUBLIC: 1,
   INTERNAL: 2,
   CONFIDENTIAL: 3,
+  TOP_SECRET: 4,
 };
 
 export const Role = {

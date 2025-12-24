@@ -23,8 +23,8 @@ router.post('/clearance-levels/:userId', authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== Role.ADMIN) throw new Error('Unauthorized');
     const { clearanceLevel } = req.body;
-    if (!clearanceLevel || clearanceLevel < 1 || clearanceLevel > 3) {
-      throw new Error('Clearance level must be between 1 and 3');
+    if (!clearanceLevel || clearanceLevel < 1 || clearanceLevel > 4) {
+      throw new Error('Clearance level must be between 1 and 4');
     }
 
     const db = getDb();
@@ -67,7 +67,7 @@ router.post('/labels/:fileId', authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== Role.ADMIN) throw new Error('Unauthorized');
     const { classification } = req.body;
-    if (!classification || ![SecurityLevel.PUBLIC, SecurityLevel.INTERNAL, SecurityLevel.CONFIDENTIAL].includes(classification)) {
+    if (!classification || ![SecurityLevel.PUBLIC, SecurityLevel.INTERNAL, SecurityLevel.CONFIDENTIAL, SecurityLevel.TOP_SECRET].includes(classification)) {
       throw new Error('Invalid classification level');
     }
 

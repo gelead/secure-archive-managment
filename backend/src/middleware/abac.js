@@ -18,11 +18,21 @@ export class PolicyDecisionPoint {
         reason: 'ABAC: Admin role attribute' 
       },
       
-      // Policy 2: Department match with role requirements
+      // Policy 2: Top Secret requires clearance level 4
+      { 
+        condition: () => resource.classification === SecurityLevel.TOP_SECRET,
+        allow: () => {
+          const userClearance = user.clearanceLevel || 1;
+          return userClearance >= SecurityLevel.TOP_SECRET;
+        },
+        reason: 'ABAC: Top Secret requires clearance level 4'
+      },
+      
+      // Policy 3: Department match with role requirements
       { 
         condition: () => user.department === resource.department,
         allow: () => {
-          if (resource.classification === SecurityLevel.CONFIDENTIAL) {
+          if (resource.classification >= SecurityLevel.CONFIDENTIAL) {
             return ['MANAGER', 'HR', 'IT'].includes(user.role);
           }
           return true;
@@ -30,19 +40,19 @@ export class PolicyDecisionPoint {
         reason: 'ABAC: Department match with role requirements'
       },
       
-      // Policy 3: Public resources accessible to all
+      // Policy 4: Public resources accessible to all
       { 
         condition: () => resource.classification === SecurityLevel.PUBLIC,
         allow: true,
         reason: 'ABAC: Public resource attribute'
       },
       
-      // Policy 4: Time-based access for Finance department
+      // Policy 5: Time-based access for Finance department
       {
         condition: () => resource.department === 'Finance' && user.department === 'Finance',
         allow: () => {
           const hour = new Date().getHours();
-          if (resource.classification === SecurityLevel.CONFIDENTIAL) {
+          if (resource.classification >= SecurityLevel.CONFIDENTIAL) {
             return hour >= 9 && hour < 17; // Working hours only
           }
           return true;
@@ -50,32 +60,32 @@ export class PolicyDecisionPoint {
         reason: 'ABAC: Finance department time-based access'
       },
       
-      // Policy 5: Payroll department can access salary data
+      // Policy 6: Payroll department can access salary data
       {
         condition: () => resource.name && resource.name.toLowerCase().includes('salary') && user.department === 'Payroll',
         allow: true,
         reason: 'ABAC: Payroll department salary access'
       },
       
-      // Policy 6: IT department cannot access salary data
+      // Policy 7: IT department cannot access salary data
       {
         condition: () => resource.name && resource.name.toLowerCase().includes('salary') && user.department === 'IT',
         allow: false,
         reason: 'ABAC: IT department denied salary access'
       },
       
-      // Policy 7: Resource owner has access (similar to DAC but attribute-based)
+      // Policy 8: Resource owner has access (similar to DAC but attribute-based)
       {
         condition: () => resource.ownerId && resource.ownerId === user._id,
         allow: true,
         reason: 'ABAC: User is resource owner attribute'
       },
       
-      // Policy 8: Role-based access (similar to RBAC but attribute-based)
+      // Policy 9: Role-based access (similar to RBAC but attribute-based)
       {
         condition: () => user.role === Role.MANAGER,
         allow: () => {
-          if (resource.department === 'IT' && resource.classification === SecurityLevel.CONFIDENTIAL) {
+          if (resource.department === 'IT' && resource.classification >= SecurityLevel.CONFIDENTIAL) {
             return false;
           }
           return true;
@@ -83,7 +93,7 @@ export class PolicyDecisionPoint {
         reason: 'ABAC: Manager role attribute'
       },
       
-      // Policy 9: Clearance level check (similar to MAC but attribute-based)
+      // Policy 10: Clearance level check (similar to MAC but attribute-based)
       {
         condition: () => resource.classification && user.clearanceLevel,
         allow: () => {

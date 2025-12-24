@@ -64,6 +64,7 @@ const SecurityManagement = ({ user }) => {
       case SecurityLevel.PUBLIC: return 'Public';
       case SecurityLevel.INTERNAL: return 'Internal';
       case SecurityLevel.CONFIDENTIAL: return 'Confidential';
+      case SecurityLevel.TOP_SECRET: return 'Top Secret';
       default: return 'Unknown';
     }
   };
@@ -133,6 +134,7 @@ const SecurityManagement = ({ user }) => {
                     <option value={SecurityLevel.PUBLIC}>Public (Level 1)</option>
                     <option value={SecurityLevel.INTERNAL}>Internal (Level 2)</option>
                     <option value={SecurityLevel.CONFIDENTIAL}>Confidential (Level 3)</option>
+                    <option value={SecurityLevel.TOP_SECRET}>Top Secret (Level 4)</option>
                   </select>
                 </div>
               ))}
@@ -174,6 +176,7 @@ const SecurityManagement = ({ user }) => {
                     <option value={SecurityLevel.PUBLIC}>Public</option>
                     <option value={SecurityLevel.INTERNAL}>Internal</option>
                     <option value={SecurityLevel.CONFIDENTIAL}>Confidential</option>
+                    <option value={SecurityLevel.TOP_SECRET}>Top Secret</option>
                   </select>
                 </div>
               ))}
